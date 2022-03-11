@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "multi-channel-packer"
 include ':app'
 include ':v2-reader'
+include ':base'
