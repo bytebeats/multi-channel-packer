@@ -8,6 +8,5 @@ package me.bytebeats.packer.base
 
 const val CHANNEL_BLOCK_ID = 0x881155ff
 val CONTENT_CHAR_SET = Charsets.UTF_8
-val CONTENT_CHAR_SET_VALUE = "UTF-8"
 internal const val SHORT_BYTE_COUNT = 2
 internal val V1_MAGIC = byteArrayOf(0x6c, 0x74, 0x6c, 0x6f, 0x76, 0x65, 0x7a, 0x68)//it's "ltlovezh"
