@@ -1,6 +1,8 @@
-package me.bytebeats.packer.base
+package me.bytebeats.packer.base.verify
 
+import me.bytebeats.packer.base.Pair
 import me.bytebeats.packer.base.Pair.Companion.invoke
+import me.bytebeats.packer.base.SignatureNotFoundException
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.BufferUnderflowException
@@ -102,7 +104,7 @@ private data class SignatureInfo(
 @Throws(IOException::class, SignatureNotFoundException::class)
 private fun findSignature(apk: RandomAccessFile): SignatureInfo {
     // Find the ZIP End of Central Directory (EoCD) record.
-    val eocdAndOffsetInFile: Pair<ByteBuffer, Long> = getEocd(apk)
+    val eocdAndOffsetInFile = getEocd(apk)
     val eocd = eocdAndOffsetInFile.first
     val eocdOffset = eocdAndOffsetInFile.second
     if (isZip64EndOfCentralDirectoryLocatorPresent(apk, eocdOffset)) {
@@ -112,13 +114,13 @@ private fun findSignature(apk: RandomAccessFile): SignatureInfo {
     // Find the APK Signing Block. The block immediately precedes the Central Directory.
     val centralDirOffset = getCentralDirOffset(eocd, eocdOffset) //通过eocd找到中央目录的偏移量
     val apkSigningBlockAndOffsetInFile = findApkSigningBlock(apk, centralDirOffset) //找到签名块的内容和偏移量
-    val apkSigningBlock = apkSigningBlockAndOffsetInFile!!.first
+    val apkSigningBlock = apkSigningBlockAndOffsetInFile.first
     val apkSigningBlockOffset = apkSigningBlockAndOffsetInFile.second
 
     // Find the APK Signature Scheme v2 Block inside the APK Signing Block.
     val apkSignatureSchemeV2Block = findApkSignatureSchemeV2Block(apkSigningBlock)
     return SignatureInfo(
-        apkSignatureSchemeV2Block!!,
+        apkSignatureSchemeV2Block,
         apkSigningBlockOffset,
         centralDirOffset,
         eocdOffset,
@@ -207,7 +209,7 @@ private fun getSignatureAlgorithmContentDigestAlgorithm(sigAlgorithm: Int): Int 
     }
 }
 
-private fun getContentDigestAlgorithmJcaDigestAlgorithm(digestAlgorithm: Int): String? {
+private fun getContentDigestAlgorithmJcaDigestAlgorithm(digestAlgorithm: Int): String {
     return when (digestAlgorithm) {
         CONTENT_DIGEST_CHUNKED_SHA256 -> "SHA-256"
         CONTENT_DIGEST_CHUNKED_SHA512 -> "SHA-512"
@@ -239,38 +241,25 @@ private fun getSignatureAlgorithmJcaKeyAlgorithm(sigAlgorithm: Int): String {
     }
 }
 
-
-private fun getSignatureAlgorithmJcaSignatureAlgorithm(sigAlgorithm: Int): Pair<String, out AlgorithmParameterSpec?>? {
+private fun getSignatureAlgorithmJcaSignatureAlgorithm(sigAlgorithm: Int): Pair<String, AlgorithmParameterSpec?> {
     return when (sigAlgorithm) {
-        SIGNATURE_RSA_PSS_WITH_SHA256 -> invoke<String, PSSParameterSpec?>(
+        SIGNATURE_RSA_PSS_WITH_SHA256 -> invoke(
             "SHA256withRSA/PSS",
             PSSParameterSpec(
                 "SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 256 / 8, 1
             )
         )
-        SIGNATURE_RSA_PSS_WITH_SHA512 -> invoke<String, PSSParameterSpec?>(
+        SIGNATURE_RSA_PSS_WITH_SHA512 -> invoke(
             "SHA512withRSA/PSS",
             PSSParameterSpec(
                 "SHA-512", "MGF1", MGF1ParameterSpec.SHA512, 512 / 8, 1
             )
         )
-        SIGNATURE_RSA_PKCS1_V1_5_WITH_SHA256 -> invoke<String, AlgorithmParameterSpec?>(
-            "SHA256withRSA",
-            null
-        )
-        SIGNATURE_RSA_PKCS1_V1_5_WITH_SHA512 -> invoke<String, AlgorithmParameterSpec?>(
-            "SHA512withRSA",
-            null
-        )
-        SIGNATURE_ECDSA_WITH_SHA256 -> invoke<String, AlgorithmParameterSpec?>(
-            "SHA256withECDSA",
-            null
-        )
-        SIGNATURE_ECDSA_WITH_SHA512 -> invoke<String, AlgorithmParameterSpec?>(
-            "SHA512withECDSA",
-            null
-        )
-        SIGNATURE_DSA_WITH_SHA256 -> invoke<String, AlgorithmParameterSpec?>("SHA256withDSA", null)
+        SIGNATURE_RSA_PKCS1_V1_5_WITH_SHA256 -> invoke("SHA256withRSA", null)
+        SIGNATURE_RSA_PKCS1_V1_5_WITH_SHA512 -> invoke("SHA512withRSA", null)
+        SIGNATURE_ECDSA_WITH_SHA256 -> invoke("SHA256withECDSA", null)
+        SIGNATURE_ECDSA_WITH_SHA512 -> invoke("SHA512withECDSA", null)
+        SIGNATURE_DSA_WITH_SHA256 -> invoke("SHA256withDSA", null)
         else -> throw IllegalArgumentException(
             "Unknown signature algorithm: 0x"
                     + java.lang.Long.toHexString(sigAlgorithm.toLong() and 0xffffffff)
@@ -318,7 +307,7 @@ fun sliceFromTo(source: ByteBuffer, start: Int, end: Int): ByteBuffer {
  * `size`.
  */
 @Throws(BufferUnderflowException::class)
-fun getByteBuffer(source: ByteBuffer, size: Int): ByteBuffer? {
+fun getByteBuffer(source: ByteBuffer, size: Int): ByteBuffer {
     require(size >= 0) { "size: $size" }
     val originalLimit = source.limit()
     val position = source.position()
@@ -338,7 +327,7 @@ fun getByteBuffer(source: ByteBuffer, size: Int): ByteBuffer? {
 }
 
 @Throws(IOException::class)
-private fun getLengthPrefixedSlice(source: ByteBuffer): ByteBuffer? {
+private fun getLengthPrefixedSlice(source: ByteBuffer): ByteBuffer {
     if (source.remaining() < 4) {
         throw IOException(
             "Remaining buffer too short to contain length of length-prefixed field.Remaining: ${source.remaining()}"
@@ -354,7 +343,7 @@ private fun getLengthPrefixedSlice(source: ByteBuffer): ByteBuffer? {
 }
 
 @Throws(IOException::class)
-private fun readLengthPrefixedByteArray(buf: ByteBuffer): ByteArray? {
+private fun readLengthPrefixedByteArray(buf: ByteBuffer): ByteArray {
     val len = buf.int
     if (len < 0) {
         throw IOException("Negative length")
@@ -437,7 +426,7 @@ fun findApkSigningBlock(
  * @throws SignatureNotFoundException
  */
 @Throws(SignatureNotFoundException::class)
-private fun findApkSignatureSchemeV2Block(apkSigningBlock: ByteBuffer): ByteBuffer? {
+private fun findApkSignatureSchemeV2Block(apkSigningBlock: ByteBuffer): ByteBuffer {
     checkByteOrderLittleEndian(apkSigningBlock)
     // FORMAT:
     // OFFSET       DATA TYPE  DESCRIPTION

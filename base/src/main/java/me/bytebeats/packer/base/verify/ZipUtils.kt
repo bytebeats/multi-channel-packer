@@ -1,5 +1,7 @@
-package me.bytebeats.packer.base
+package me.bytebeats.packer.base.verify
 
+import me.bytebeats.packer.base.Pair
+import me.bytebeats.packer.base.Pair.Companion.invoke
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
@@ -80,7 +82,8 @@ fun findZipEndOfCentralDirectoryRecord(zip: RandomAccessFile): Pair<ByteBuffer, 
  */
 @Throws(IOException::class)
 private fun findZipEndOfCentralDirectoryRecord(
-    zip: RandomAccessFile, maxCommentSize: Int
+    zip: RandomAccessFile,
+    maxCommentSize: Int
 ): Pair<ByteBuffer, Long>? {
     // ZIP End of Central Directory (EOCD) record is located at the very end of the ZIP archive.
     // The record can be identified by its 4-byte signature/magic which is located at the very
@@ -114,7 +117,7 @@ private fun findZipEndOfCentralDirectoryRecord(
     buf.position(eocdOffsetInBuf)
     val eocd = buf.slice()
     eocd.order(ByteOrder.LITTLE_ENDIAN)
-    return Pair.invoke(eocd, bufOffsetInFile + eocdOffsetInBuf)
+    return invoke(eocd, bufOffsetInFile + eocdOffsetInBuf)
 }
 
 /**
@@ -167,7 +170,8 @@ private fun findZipEndOfCentralDirectoryRecord(zipContents: ByteBuffer): Int {
  */
 @Throws(IOException::class)
 fun isZip64EndOfCentralDirectoryLocatorPresent(
-    zip: RandomAccessFile, zipEndOfCentralDirectoryPosition: Long
+    zip: RandomAccessFile,
+    zipEndOfCentralDirectoryPosition: Long
 ): Boolean {
 
     // ZIP64 End of Central Directory Locator immediately precedes the ZIP End of Central
@@ -202,9 +206,7 @@ fun getZipEocdCentralDirectoryOffset(zipEndOfCentralDirectory: ByteBuffer): Long
  *
  * NOTE: Byte order of `zipEndOfCentralDirectory` must be little-endian.
  */
-fun setZipEocdCentralDirectoryOffset(
-    zipEndOfCentralDirectory: ByteBuffer, offset: Long
-) {
+fun setZipEocdCentralDirectoryOffset(zipEndOfCentralDirectory: ByteBuffer, offset: Long) {
     assertByteOrderLittleEndian(zipEndOfCentralDirectory)
     setUnsignedInt32(
         zipEndOfCentralDirectory,
