@@ -28,7 +28,7 @@ import java.nio.ByteOrder
  * @throws IOException
  * @throws SignatureNotFoundException
  */
-@Throws(IOException::class, SignatureNotFoundException::class, RuntimeException)
+@Throws(IOException::class, SignatureNotFoundException::class, RuntimeException::class)
 fun addIdValue(apkSectionInfo: ApkSectionInfo, destApk: File, id: Int, valueBuffer: ByteBuffer) {
     if (id == APK_SIGNATURE_SCHEME_V2_BLOCK_ID) {
         throw RuntimeException(
@@ -42,7 +42,7 @@ fun addIdValue(apkSectionInfo: ApkSectionInfo, destApk: File, id: Int, valueBuff
 
 @Throws(SignatureNotFoundException::class, IOException::class, RuntimeException::class)
 fun removeIdValue(apkSectionInfo: ApkSectionInfo?, destApk: File?, idList: List<Int>?) {
-    if (apkSectionInfo == null || destApk == null || !destApk.isFile() || !destApk.exists() || idList == null || idList.isEmpty()) {
+    if (apkSectionInfo == null || destApk == null || !destApk.isFile || !destApk.exists() || idList == null || idList.isEmpty()) {
         return
     }
     val existentIdValueMap =
@@ -195,7 +195,7 @@ fun addIdValueByteBufferMap(
         //4. write eocd block
         raf.write(eocd.array(), eocd.arrayOffset() + eocd.position(), eocd.remaining())
         //5. modify the length of apk file
-        if (raf.getFilePointer() != apkLength) {
+        if (raf.filePointer != apkLength) {
             throw RuntimeException("after addIdValueByteBufferMap , file size wrong , FilePointer : ${raf.getFilePointer()}, apkLength : $apkLength")
         }
         raf.setLength(apkLength)
@@ -220,7 +220,9 @@ fun addIdValue(srcApk: File, destApk: File, id: Int, buffer: ByteArray, lowMemor
     val channelByteBuffer = ByteBuffer.wrap(buffer)
     //apk中所有字节都是小端模式
     channelByteBuffer.order(ByteOrder.LITTLE_ENDIAN)
-    addIdValue(apkSectionInfo, destApk, id, channelByteBuffer)
+    if (apkSectionInfo != null) {
+        addIdValue(apkSectionInfo, destApk, id, channelByteBuffer)
+    }
 }
 
 /**
@@ -281,8 +283,7 @@ fun addIdValue(apkFile: File, id: Int, buffer: ByteArray, lowMemory: Boolean) {
     addIdValue(apkFile, apkFile, id, buffer, lowMemory)
 }
 
-
 @Throws(IOException::class, SignatureNotFoundException::class)
 fun getApkSectionInfo(baseApk: File?, lowMemory: Boolean): ApkSectionInfo? =
-    if (baseApk == null || !baseApk.exists() || !baseApk.isFile()) null
+    if (baseApk == null || !baseApk.exists() || !baseApk.isFile) null
     else V2SchemeUtils.getApkSectionInfo(baseApk, lowMemory)

@@ -28,16 +28,16 @@ import java.nio.ByteOrder
  */
 @Throws(IOException::class, SignatureNotFoundException::class)
 fun addChannelByV2(apkSectionInfo: ApkSectionInfo, destApk: File?, channel: String?) {
-    if (destApk == null || channel == null || channel.length <= 0) {
+    if (destApk == null || channel == null || channel.isEmpty()) {
         throw RuntimeException("addChannelByV2 , param invalid, channel = $channel , destApk = $destApk")
     }
     if (apkSectionInfo.lowMemory) {
-        if (!destApk.exists() || !destApk.isFile() || destApk.length() <= 0) {
+        if (!destApk.exists() || !destApk.isFile || destApk.length() <= 0) {
             throw RuntimeException("addChannelByV2 , destApk invalid in the lowMemory mode")
         }
     } else {
-        if (!destApk.getParentFile().exists()) {
-            destApk.getParentFile().mkdirs()
+        if (destApk.parentFile?.exists() != true) {
+            destApk.parentFile?.mkdirs()
         }
     }
     val buffer: ByteArray = channel.toByteArray(CONTENT_CHAR_SET)
@@ -47,7 +47,7 @@ fun addChannelByV2(apkSectionInfo: ApkSectionInfo, destApk: File?, channel: Stri
     addIdValue(
         apkSectionInfo,
         destApk,
-        CHANNEL_BLOCK_ID,
+        CHANNEL_BLOCK_ID.toInt(),
         channelByteBuffer
     )
 }
@@ -118,7 +118,7 @@ fun addChannelByV1(apkFile: File, channel: String?) {
  */
 @Throws(IOException::class, SignatureNotFoundException::class)
 fun removeChannelByV2(destApk: File, lowMemory: Boolean) {
-    if (destApk == null || !destApk.isFile() || !destApk.exists()) {
+    if (!destApk.isFile || !destApk.exists()) {
         return
     }
     val apkSectionInfo = getApkSectionInfo(destApk, lowMemory)
