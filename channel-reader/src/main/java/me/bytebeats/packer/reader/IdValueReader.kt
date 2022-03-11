@@ -1,4 +1,4 @@
-package me.bytebeats.packer.v2.reader
+package me.bytebeats.packer.reader
 
 import me.bytebeats.packer.base.CONTENT_CHAR_SET
 import me.bytebeats.packer.base.SignatureNotFoundException

@@ -1,4 +1,4 @@
-package me.bytebeats.packer.v2.reader
+package me.bytebeats.packer.reader
 
 import me.bytebeats.packer.base.CHANNEL_BLOCK_ID
 import me.bytebeats.packer.base.V1SchemeUtils
